@@ -160,6 +160,70 @@
             max-width: 400px; /* 设置最大宽度以实现自动换行 */
             line-height: 1.5; /* 调整行高使文本更易读 */
         }
+
+        /* 反馈表单样式 */
+        .feedback-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(44, 62, 80, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            transform: translateX(110%);
+            transition: transform 0.3s;
+            z-index: 100;
+        }
+
+        .feedback-container.active {
+            transform: translateX(0);
+        }
+
+        .feedback-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .feedback-form input,
+        .feedback-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #34495e;
+            border-radius: 4px;
+            color: white;
+        }
+
+        .feedback-form button {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .status-message {
+            color: #2ecc71;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
     </style>
 </head>
 
@@ -192,120 +256,177 @@
     <div id="gameplay-intro">
         游戏玩法：每关电脑选4个不重复数字作密码，你输入4个数字提交，下方圆点提示结果。绿点表示数字和位置都对，黄点表示数字对但位置不对，灰点表示数字和位置都不对。猜对密码进入下一关。
     </div>
-</body>
 
-<script>
-    let currentLevel = 1;
-    let password = generatePassword();
-    const inputBoxes = document.querySelectorAll('.input-box');
-    const dots = document.querySelectorAll('.dot');
-    const recordContainer = document.querySelector('.record-container');
-    const messageDiv = document.getElementById('message');
-    const levelInfoDiv = document.getElementById('level-info');
-    const victoryModal = document.getElementById('victory-modal');
-    const victoryMessage = document.getElementById('victory-message');
+    <!-- 反馈表单 -->
+    <button class="feedback-toggle">💬</button>
+    <div class="feedback-container">
+        <form class="feedback-form" id="feedbackForm"
+            action="https://api.web3forms.com/submit"
+            method="POST"
+            enctype="multipart/form-data">
 
-    function generatePassword() {
-        let numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        let password = [];
-        for (let i = 0; i < 4; i++) {
-            let randomIndex = Math.floor(Math.random() * numbers.length);
-            password.push(numbers[randomIndex]);
-            numbers.splice(randomIndex, 1);
-        }
-        return password;
-    }
+            <input type="hidden" name="access_key" value="42f0c9fe-4dce-4ff2-9d54-fd4384369d9f">
+            <input type="hidden" name="_template" value="basic">
+            <input type="hidden" name="_subject" value="Deepgame反馈">
+            <input type="hidden" name="_redirect" value="https://layne010.github.io/snake-game/">
 
-    function checkGuess() {
-        let guess = [];
-        let isValid = true;
-        inputBoxes.forEach(box => {
-            if (isNaN(box.value) || box.value < 0 || box.value > 9) {
-                isValid = false;
+            <input type="text" name="name" placeholder="昵称（可选）">
+            <input type="email" name="email" placeholder="邮箱（可选）">
+            <textarea name="message" rows="4" placeholder="您的建议..." required></textarea>
+            <button type="submit">发送反馈</button>
+            <div class="status-message" id="statusMessage">反馈已发送！</div>
+        </form>
+    </div>
+
+    <script>
+        let currentLevel = 1;
+        let password = generatePassword();
+        const inputBoxes = document.querySelectorAll('.input-box');
+        const dots = document.querySelectorAll('.dot');
+        const recordContainer = document.querySelector('.record-container');
+        const messageDiv = document.getElementById('message');
+        const levelInfoDiv = document.getElementById('level-info');
+        const victoryModal = document.getElementById('victory-modal');
+        const victoryMessage = document.getElementById('victory-message');
+
+        function generatePassword() {
+            let numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+            let password = [];
+            for (let i = 0; i < 4; i++) {
+                let randomIndex = Math.floor(Math.random() * numbers.length);
+                password.push(numbers[randomIndex]);
+                numbers.splice(randomIndex, 1);
             }
-            guess.push(parseInt(box.value));
-        });
-
-        if (!isValid) {
-            messageDiv.textContent = '请输入 0 到 9 之间的有效数字！';
-            return;
+            return password;
         }
 
-        let result = [];
-        for (let i = 0; i < 4; i++) {
-            if (guess[i] === password[i]) {
-                result.push('green');
-            } else if (password.includes(guess[i])) {
-                result.push('yellow');
+        function checkGuess() {
+            let guess = [];
+            let isValid = true;
+            inputBoxes.forEach(box => {
+                if (isNaN(box.value) || box.value < 0 || box.value > 9) {
+                    isValid = false;
+                }
+                guess.push(parseInt(box.value));
+            });
+
+            if (!isValid) {
+                messageDiv.textContent = '请输入 0 到 9 之间的有效数字！';
+                return;
+            }
+
+            let result = [];
+            for (let i = 0; i < 4; i++) {
+                if (guess[i] === password[i]) {
+                    result.push('green');
+                } else if (password.includes(guess[i])) {
+                    result.push('yellow');
+                } else {
+                    result.push('gray');
+                }
+            }
+
+            // 更新提示圆点颜色
+            dots.forEach((dot, index) => {
+                dot.className = `dot ${result[index]}`;
+            });
+
+            // 记录本次输入情况
+            let recordRow = document.createElement('div');
+            recordRow.className = 'record-row';
+
+            guess.forEach(num => {
+                let recordBox = document.createElement('div');
+                recordBox.className = 'record-box';
+                recordBox.textContent = num;
+                recordRow.appendChild(recordBox);
+            });
+
+            result.forEach(color => {
+                let recordDot = document.createElement('div');
+                recordDot.className = `record-dot ${color}`;
+                recordRow.appendChild(recordDot);
+            });
+
+            recordContainer.appendChild(recordRow);
+
+            // 检查是否猜对
+            if (result.every(color => color === 'green')) {
+                if (currentLevel < 100) {
+                    victoryMessage.textContent = `恭喜你！破译成功！点击屏幕继续进入第 ${currentLevel + 1} 关！`;
+                    victoryModal.style.display = 'flex';
+                } else {
+                    messageDiv.textContent = '恭喜你，通关所有关卡！';
+                }
             } else {
-                result.push('gray');
+                messageDiv.textContent = '';
             }
         }
 
-        // 更新提示圆点颜色
-        dots.forEach((dot, index) => {
-            dot.className = `dot ${result[index]}`;
-        });
-
-        // 记录本次输入情况
-        let recordRow = document.createElement('div');
-        recordRow.className = 'record-row';
-
-        guess.forEach(num => {
-            let recordBox = document.createElement('div');
-            recordBox.className = 'record-box';
-            recordBox.textContent = num;
-            recordRow.appendChild(recordBox);
-        });
-
-        result.forEach(color => {
-            let recordDot = document.createElement('div');
-            recordDot.className = `record-dot ${color}`;
-            recordRow.appendChild(recordDot);
-        });
-
-        recordContainer.appendChild(recordRow);
-
-        // 检查是否猜对
-        if (result.every(color => color === 'green')) {
-            if (currentLevel < 100) {
-                victoryMessage.textContent = `恭喜你！破译成功！点击屏幕继续进入第 ${currentLevel + 1} 关！`;
-                victoryModal.style.display = 'flex';
-            } else {
-                messageDiv.textContent = '恭喜你，通关所有关卡！';
-            }
-        } else {
+        function clearInput() {
+            inputBoxes.forEach(box => {
+                box.value = '';
+            });
+            dots.forEach(dot => {
+                dot.className = 'dot';
+            });
             messageDiv.textContent = '';
         }
-    }
 
-    function clearInput() {
-        inputBoxes.forEach(box => {
-            box.value = '';
-        });
-        dots.forEach(dot => {
-            dot.className = 'dot';
-        });
-        messageDiv.textContent = '';
-    }
-
-    function moveToNextInput(currentInput) {
-        const index = Array.from(inputBoxes).indexOf(currentInput);
-        if (index < inputBoxes.length - 1 && currentInput.value.length > 0) {
-            inputBoxes[index + 1].focus();
+        function moveToNextInput(currentInput) {
+            const index = Array.from(inputBoxes).indexOf(currentInput);
+            if (index < inputBoxes.length - 1 && currentInput.value.length > 0) {
+                inputBoxes[index + 1].focus();
+            }
         }
-    }
 
-    function nextLevel() {
-        if (currentLevel < 100) {
-            currentLevel++;
-            password = generatePassword();
-            recordContainer.innerHTML = '';
-            levelInfoDiv.textContent = `当前关卡: ${currentLevel}`;
-            victoryModal.style.display = 'none';
-            clearInput();
+        function nextLevel() {
+            if (currentLevel < 100) {
+                currentLevel++;
+                password = generatePassword();
+                recordContainer.innerHTML = '';
+                levelInfoDiv.textContent = `当前关卡: ${currentLevel}`;
+                victoryModal.style.display = 'none';
+                clearInput();
+            }
         }
-    }
-</script>
 
-</html>    
+        // 反馈表单功能
+        document.addEventListener('DOMContentLoaded', () => {
+            const feedbackToggle = document.querySelector('.feedback-toggle');
+            const feedbackContainer = document.querySelector('.feedback-container');
+            const form = document.getElementById('feedbackForm');
+            const statusMsg = document.getElementById('statusMessage');
+
+            // 切换表单可见性
+            feedbackToggle.addEventListener('click', () => {
+                feedbackContainer.classList.toggle('active');
+            });
+
+            // 表单提交处理
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                statusMsg.style.display = 'block';
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'Accept': 'application/json' }
+                    });
+
+                    if (response.ok) {
+                        form.reset();
+                        setTimeout(() => {
+                            statusMsg.style.display = 'none';
+                            feedbackContainer.classList.remove('active');
+                        }, 2000);
+                    }
+                } catch (error) {
+                    alert('提交失败，请检查网络');
+                }
+            });
+        });
+    </script>
+
+</html>
