@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密码机游戏</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-family: 'Arial', sans-serif;
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        #level-info {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-container {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .input-box {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            margin: 0 8px;
+            text-align: center;
+            font-size: 28px;
+            border: none;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dot-container {
+            display: flex;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .dot {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            margin: 0 28px;
+            position: relative;
+            top: -10px;
+        }
+
+        .gray {
+            background-color: gray;
+        }
+
+        .yellow {
+            background-color: yellow;
+        }
+
+        .green {
+            background-color: green;
+        }
+
+        .record-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .record-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .record-box {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            margin: 0 8px;
+            text-align: center;
+            font-size: 28px;
+            border-radius: 5px;
+            color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .record-dot {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            margin: 0 28px;
+            position: relative;
+            top: 0;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            margin: 0 20px;
+            cursor: pointer;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+
+        #victory-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #victory-message {
+            font-size: 36px;
+            color: white;
+        }
+
+        #gameplay-intro {
+            font-size: 16px;
+            text-align: center;
+            margin-top: 20px;
+            max-width: 400px; /* 设置最大宽度以实现自动换行 */
+            line-height: 1.5; /* 调整行高使文本更易读 */
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Layne的超级密码机</h1>
+    <div id="level-info">当前关卡: 1</div>
+    <div class="input-container">
+        <input type="number" class="input-box" min="0" max="9" oninput="moveToNextInput(this)">
+        <input type="number" class="input-box" min="0" max="9" oninput="moveToNextInput(this)">
+        <input type="number" class="input-box" min="0" max="9" oninput="moveToNextInput(this)">
+        <input type="number" class="input-box" min="0" max="9" oninput="moveToNextInput(this)">
+    </div>
+    <div class="dot-container">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+    <div class="record-container">
+        <!-- 记录区 -->
+    </div>
+    <div class="button-container">
+        <button onclick="clearInput()">再次输入</button>
+        <button onclick="checkGuess()">提交</button>
+    </div>
+    <div id="message"></div>
+    <div id="victory-modal" onclick="nextLevel()">
+        <div id="victory-message"></div>
+    </div>
+    <div id="gameplay-intro">
+        游戏玩法：每关电脑选4个不重复数字作密码，你输入4个数字提交，下方圆点提示结果。绿点表示数字和位置都对，黄点表示数字对但位置不对，灰点表示数字和位置都不对。猜对密码进入下一关。
+    </div>
+</body>
+
+<script>
+    let currentLevel = 1;
+    let password = generatePassword();
+    const inputBoxes = document.querySelectorAll('.input-box');
+    const dots = document.querySelectorAll('.dot');
+    const recordContainer = document.querySelector('.record-container');
+    const messageDiv = document.getElementById('message');
+    const levelInfoDiv = document.getElementById('level-info');
+    const victoryModal = document.getElementById('victory-modal');
+    const victoryMessage = document.getElementById('victory-message');
+
+    function generatePassword() {
+        let numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let password = [];
+        for (let i = 0; i < 4; i++) {
+            let randomIndex = Math.floor(Math.random() * numbers.length);
+            password.push(numbers[randomIndex]);
+            numbers.splice(randomIndex, 1);
+        }
+        return password;
+    }
+
+    function checkGuess() {
+        let guess = [];
+        let isValid = true;
+        inputBoxes.forEach(box => {
+            if (isNaN(box.value) || box.value < 0 || box.value > 9) {
+                isValid = false;
+            }
+            guess.push(parseInt(box.value));
+        });
+
+        if (!isValid) {
+            messageDiv.textContent = '请输入 0 到 9 之间的有效数字！';
+            return;
+        }
+
+        let result = [];
+        for (let i = 0; i < 4; i++) {
+            if (guess[i] === password[i]) {
+                result.push('green');
+            } else if (password.includes(guess[i])) {
+                result.push('yellow');
+            } else {
+                result.push('gray');
+            }
+        }
+
+        // 更新提示圆点颜色
+        dots.forEach((dot, index) => {
+            dot.className = `dot ${result[index]}`;
+        });
+
+        // 记录本次输入情况
+        let recordRow = document.createElement('div');
+        recordRow.className = 'record-row';
+
+        guess.forEach(num => {
+            let recordBox = document.createElement('div');
+            recordBox.className = 'record-box';
+            recordBox.textContent = num;
+            recordRow.appendChild(recordBox);
+        });
+
+        result.forEach(color => {
+            let recordDot = document.createElement('div');
+            recordDot.className = `record-dot ${color}`;
+            recordRow.appendChild(recordDot);
+        });
+
+        recordContainer.appendChild(recordRow);
+
+        // 检查是否猜对
+        if (result.every(color => color === 'green')) {
+            if (currentLevel < 100) {
+                victoryMessage.textContent = `恭喜你！破译成功！点击屏幕继续进入第 ${currentLevel + 1} 关！`;
+                victoryModal.style.display = 'flex';
+            } else {
+                messageDiv.textContent = '恭喜你，通关所有关卡！';
+            }
+        } else {
+            messageDiv.textContent = '';
+        }
+    }
+
+    function clearInput() {
+        inputBoxes.forEach(box => {
+            box.value = '';
+        });
+        dots.forEach(dot => {
+            dot.className = 'dot';
+        });
+        messageDiv.textContent = '';
+    }
+
+    function moveToNextInput(currentInput) {
+        const index = Array.from(inputBoxes).indexOf(currentInput);
+        if (index < inputBoxes.length - 1 && currentInput.value.length > 0) {
+            inputBoxes[index + 1].focus();
+        }
+    }
+
+    function nextLevel() {
+        if (currentLevel < 100) {
+            currentLevel++;
+            password = generatePassword();
+            recordContainer.innerHTML = '';
+            levelInfoDiv.textContent = `当前关卡: ${currentLevel}`;
+            victoryModal.style.display = 'none';
+            clearInput();
+        }
+    }
+</script>
+
+</html>    
